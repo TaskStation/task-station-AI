@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TaskStation AI Prototype</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      background: #f0f4f8;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #4a90e2;
+    }
+    form {
+      margin-bottom: 1rem;
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-top: 0.75rem;
+      font-weight: bold;
+    }
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.25rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 1rem;
+      background-color: #4a90e2;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.25rem;
+      font-size: 1rem;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #357ABD;
+    }
+    ul {
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      list-style-type: none;
+    }
+    ul li {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #eee;
+    }
+    ul li:last-child {
+      border-bottom: none;
+    }
+    .schedule {
+      margin-top: 2rem;
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      font-family: monospace;
+      white-space: pre-line;
+    }
+  </style>
+</head>
+<body>
+  <h1>TaskStation AI Prototype</h1>
+
+  <form id="taskForm">
+    <label for="taskName">Task Name:</label>
+    <input type="text" id="taskName" placeholder="Enter task title" required />
+
+    <label for="taskDuration">Estimated Duration (minutes):</label>
+    <input type="number" id="taskDuration" min="1" max="240" placeholder="E.g., 30" required />
+
+    <button type="submit">Add Task</button>
+  </form>
+
+  <h2>Today's Tasks</h2>
+  <ul id="taskList"></ul>
+
+  <button id="generateScheduleBtn" style="display:none;">Generate Smart Schedule</button>
+
+  <div id="scheduleOutput" class="schedule" style="display:none;"></div>
+
+  <!-- ✅ Download Button (initially hidden) -->
+  <button id="downloadBtn" style="display:none; background-color:#27ae60; color:white; padding:0.75rem 1.25rem; font-size:1rem; border:none; border-radius:5px; cursor:pointer; margin-top:1rem;">
+    Download Schedule
+  </button>
+
+  <script>
+    const taskForm = document.getElementById('taskForm');
+    const taskList = document.getElementById('taskList');
+    const generateBtn = document.getElementById('generateScheduleBtn');
+    const scheduleOutput = document.getElementById('scheduleOutput');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    let tasks = [];
+
+    taskForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('taskName').value.trim();
+      const duration = parseInt(document.getElementById('taskDuration').value);
+
+      if (name && duration > 0) {
+        tasks.push({ name, duration });
+        renderTasks();
+        taskForm.reset();
+        generateBtn.style.display = tasks.length > 0 ? 'inline-block' : 'none';
+        scheduleOutput.style.display = 'none';
+        downloadBtn.style.display = 'none';
+      }
+    });
+
+    function renderTasks() {
+      taskList.innerHTML = '';
+      tasks.forEach((task, i) => {
+        const li = document.createElement('li');
+        li.textContent = `${task.name} — ${task.duration} min`;
+        taskList.appendChild(li);
+      });
+    }
+
+    function minutesToTime(minutes) {
+      let h = Math.floor(minutes / 60);
+      let m = minutes % 60;
+      if (h > 0) return `${h}h ${m}m`;
+      return `${m}m`;
+    }
+
+    function generateSchedule() {
+      if (tasks.length === 0) {
+        scheduleOutput.textContent = 'No tasks added.';
+        scheduleOutput.style.display = 'block';
+        return;
+      }
+
+      let currentTime = 9 * 60;
+      let outputLines = [];
+      outputLines.push('TaskStation AI Daily Schedule\n');
+      outputLines.push('Start at 09:00 AM\n');
+
+      tasks.forEach((task, index) => {
+        let durationLeft = task.duration;
+
+        while (durationLeft > 0) {
+          let workSession = Math.min(durationLeft, 45);
+          let startH = Math.floor(currentTime / 60);
+          let startM = currentTime % 60;
+          currentTime += workSession;
+          let endH = Math.floor(currentTime / 60);
+          let endM = currentTime % 60;
+
+          let startTimeStr = formatTime(startH, startM);
+          let endTimeStr = formatTime(endH, endM);
+
+          outputLines.push(`${startTimeStr} – ${endTimeStr} : ${task.name} (focus)`);
+
+          durationLeft -= workSession;
+
+          if (durationLeft > 0 || index < tasks.length - 1) {
+            let breakStartH = Math.floor(currentTime / 60);
+            let breakStartM = currentTime % 60;
+            currentTime += 10;
+            let breakEndH = Math.floor(currentTime / 60);
+            let breakEndM = currentTime % 60;
+
+            let breakStartStr = formatTime(breakStartH, breakStartM);
+            let breakEndStr = formatTime(breakEndH, breakEndM);
+
+            outputLines.push(`${breakStartStr} – ${breakEndStr} : Break (rest/stretch)`);
+          }
+        }
+      });
+
+      const scheduleText = outputLines.join('\n');
+      scheduleOutput.textContent = scheduleText;
+      scheduleOutput.style.display = 'block';
+
+      // Show download button
+      downloadBtn.style.display = 'inline-block';
+      downloadBtn.onclick = () => {
+        const blob = new Blob([scheduleText], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'schedule.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      };
+    }
+
+    function formatTime(h, m) {
+      let ampm = h >= 12 ? 'PM' : 'AM';
+      let hour12 = h % 12 || 12;
+      let minStr = m.toString().padStart(2, '0');
+      return `${hour12}:${minStr} ${ampm}`;
+    }
+
+    generateBtn.addEventListener('click', generateSchedule);
+  </script>
+<a href="file:///C:/Users/baido/Desktop/task%20station%20AI/focus%20station.html">Start Focus Now</a>
+
+</body>
+</html>

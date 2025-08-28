@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Focus Station</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #222;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    #timer {
+      font-size: 4em;
+      margin: 20px 0;
+      text-shadow: 0 0 10px #4a90e2;
+    }
+    #start-btn {
+      padding: 10px 20px;
+      font-size: 1rem;
+      background: #444;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #start-btn:hover {
+      background: #555;
+    }
+    a {
+      margin-top: 20px;
+      color: #4a90e2;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <h1 id="phase">Focus Time</h1>
+  <div id="timer">00:00</div>
+  <button id="start-btn">Start</button>
+
+  <a href="comments.html?rate=5">Leave a Comment & Rate</a>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const focusMinutes = parseInt(urlParams.get("duration")) || 45;
+    const breakMinutes = 10;
+
+    const phaseEl = document.getElementById("phase");
+    const timerEl = document.getElementById("timer");
+    const startBtn = document.getElementById("start-btn");
+
+    let phase = "focus";
+    let timeLeft = focusMinutes * 60;
+    let intervalId = null;
+
+    function updateTimer() {
+      const m = Math.floor(timeLeft / 60).toString().padStart(2, "0");
+      const s = (timeLeft % 60).toString().padStart(2, "0");
+      timerEl.textContent = `${m}:${s}`;
+      if (timeLeft <= 0) {
+        clearInterval(intervalId);
+        if (phase === "focus") startBreak();
+        else {
+          phaseEl.textContent = "Cycle Complete";
+          startBtn.disabled = false;
+        }
+      }
+      timeLeft--;
+    }
+
+    function startFocus() {
+      phase = "focus";
+      phaseEl.textContent = "Focus Time";
+      timeLeft = focusMinutes * 60;
+      intervalId = setInterval(updateTimer, 1000);
+    }
+
+    function startBreak() {
+      phase = "break";
+      phaseEl.textContent = "Break Time";
+      timeLeft = breakMinutes * 60;
+      intervalId = setInterval(updateTimer, 1000);
+    }
+
+    startBtn.addEventListener("click", () => {
+      startBtn.disabled = true;
+      startFocus();
+    });
+  </script>
+
+</body>
+</html>
